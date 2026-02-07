@@ -1,0 +1,5 @@
+/* Ensure the form editor takes full height */
+:host {
+    display: block;
+    height: 100vh;
+}
