@@ -4,6 +4,7 @@ export interface DocumentTemplate {
     description: string;
     thumbnailUrl?: string; // For now just a color or placeholder
     updatedAt: Date;
+    content?: string; // JSON schema string
 }
 
 export const MOCK_DOCUMENTS: DocumentTemplate[] = [

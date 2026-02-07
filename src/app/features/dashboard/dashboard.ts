@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { DocumentTemplate, MOCK_DOCUMENTS } from '../../core/models/document.model';
+import { DocumentTemplate } from '../../core/models/document.model';
+import { DocumentService } from '../../core/services/document.service';
 import { DocumentCard } from './components/document-card/document-card';
 
 @Component({
@@ -11,10 +12,32 @@ import { DocumentCard } from './components/document-card/document-card';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard {
-  documents: DocumentTemplate[] = MOCK_DOCUMENTS;
+export class Dashboard implements OnInit {
+  documents: DocumentTemplate[] = [];
 
-  constructor(private router: Router) { }
+  constructor(
+    private router: Router,
+    private documentService: DocumentService,
+    private cdr: ChangeDetectorRef
+  ) { }
+
+  ngOnInit() {
+    this.loadDocuments();
+  }
+
+  loadDocuments() {
+    console.log('Loading documents...');
+    this.documentService.getDocuments().subscribe({
+      next: (docs) => {
+        console.log('Documents loaded:', docs);
+        this.documents = docs;
+        this.cdr.detectChanges(); // Force change detection
+      },
+      error: (err) => {
+        console.error('Error loading documents:', err);
+      }
+    });
+  }
 
   createNewDocument() {
     this.router.navigate(['/editor']);

@@ -20,7 +20,8 @@
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900">My Documents</h2>
-                <p class="text-gray-500 mt-1">Manage all your document templates and forms from here.</p>
+                <p class="text-gray-500 mt-1">Manage all your document templates and forms from here. ({{
+                    documents.length }} items)</p>
             </div>
             <button (click)="createNewDocument()"
                 class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-indigo-700 shadow-sm hover:shadow-md transition-all flex items-center gap-2 active:scale-95">
