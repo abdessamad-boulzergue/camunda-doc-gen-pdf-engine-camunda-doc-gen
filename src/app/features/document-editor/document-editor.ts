@@ -1,16 +1,18 @@
-import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 // Using direct package imports
 import { FormEditor } from '@bpmn-io/form-js-editor';
 import { Form } from '@bpmn-io/form-js-viewer';
 import { DocumentService } from '../../core/services/document.service';
 import { DocumentTemplate } from '../../core/models/document.model';
+import { DataSource, MOCK_DATA_SOURCES } from '../../core/models/data-source.model';
 
 @Component({
   selector: 'app-document-editor',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './document-editor.html',
   styleUrl: './document-editor.css',
 })
@@ -20,6 +22,9 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
   id: string | null = null;
   mode: 'edit' | 'preview' = 'edit';
   document: DocumentTemplate | null = null;
+  title: string = 'New Document';
+  dataSources: DataSource[] = MOCK_DATA_SOURCES;
+  selectedDataSourceId: string | null = null;
   private formInstance: any;
 
   // Initial schema
@@ -36,7 +41,8 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private documentService: DocumentService
+    private documentService: DocumentService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
@@ -61,6 +67,7 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
     this.documentService.getDocumentById(id).subscribe(doc => {
       console.log('Loaded document', doc);
       this.document = doc;
+      this.title = doc.title;
       if (doc.content) {
         try {
           this.schema = JSON.parse(doc.content);
@@ -74,6 +81,7 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
       if (this.formInstance) {
         this.formInstance.importSchema(this.schema).catch((err: any) => console.error('Import schema failed', err));
       }
+      this.cdr.detectChanges();
     });
   }
 
@@ -91,6 +99,9 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
     try {
       await this.formInstance.importSchema(this.schema);
       if (this.mode === 'preview') {
+        if (this.selectedDataSourceId) {
+          this.updatePreviewData();
+        }
         // Set some mock data for preview
         this.formInstance.on('changed', (event: any) => {
           console.log('Form data changed', event);
@@ -109,27 +120,41 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
 
   toggleMode() {
     this.mode = this.mode === 'edit' ? 'preview' : 'edit';
-    // Ideally we should save schema and re-init, but for now just reload page or navigate
+
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { mode: this.mode },
       queryParamsHandling: 'merge'
-    }).then(() => {
-      // Simple hack to re-init component for now since we change class instance
-      window.location.reload();
-    });
+    }).then(() => this.initForm());
   }
+
+  private async initForm() {
+    this.formInstance?.destroy();
+
+    this.formInstance =
+      this.mode === 'edit'
+        ? new FormEditor({ container: this.formContainer.nativeElement })
+        : new Form({ container: this.formContainer.nativeElement });
+
+    await this.formInstance.importSchema(this.schema);
+
+    if (this.mode === 'preview' && this.selectedDataSourceId) {
+      this.updatePreviewData();
+    }
+  }
+
 
   async saveDocument() {
     if (!this.formInstance) return;
 
     try {
-      const schema = this.formInstance.saveSchema();
-      console.log('Saving schema:', schema);
+      const result = this.formInstance.saveSchema();
+      console.log('saveSchema result:', result);
+      const schema = result.schema || result;
 
       const doc: DocumentTemplate = {
         id: this.id || '',
-        title: this.document?.title || 'New Document',
+        title: this.title,
         description: this.document?.description || 'Created via Editor',
         updatedAt: new Date(),
         content: JSON.stringify(schema)
@@ -156,5 +181,20 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
 
   goBack() {
     this.router.navigate(['/']);
+  }
+
+  onDataSourceChange() {
+    if (this.mode === 'preview' && this.formInstance) {
+      this.updatePreviewData();
+    }
+  }
+
+  private updatePreviewData() {
+    const selectedSource = this.dataSources.find(ds => ds.id === this.selectedDataSourceId);
+    if (selectedSource) {
+      this.formInstance.importSchema(this.schema, selectedSource.data).catch((err: any) => console.error('Import schema with data failed', err));
+    } else {
+      this.formInstance.importSchema(this.schema).catch((err: any) => console.error('Import schema failed', err));
+    }
   }
 }

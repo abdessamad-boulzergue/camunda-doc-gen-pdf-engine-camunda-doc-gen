@@ -7,12 +7,28 @@
             </button>
             <div class="h-6 w-px bg-gray-300"></div>
             <div>
-                <h1 class="text-lg font-bold text-gray-900">{{ id ? 'Edit Document' : 'New Document' }}</h1>
+                <ng-container *ngIf="mode === 'edit'; else previewTitle">
+                    <input [(ngModel)]="title"
+                        class="text-lg font-bold text-gray-900 border-none focus:ring-0 p-0 bg-transparent placeholder-gray-400"
+                        placeholder="Document Title" />
+                </ng-container>
+                <ng-template #previewTitle>
+                    <h1 class="text-lg font-bold text-gray-900">{{ title }}</h1>
+                </ng-template>
                 <p class="text-xs text-gray-500" *ngIf="id">ID: {{ id }}</p>
             </div>
         </div>
 
         <div class="flex items-center gap-3">
+            <div *ngIf="mode === 'preview'" class="flex items-center gap-2">
+                <label for="dataSource" class="text-sm font-medium text-gray-700">Data Source:</label>
+                <select id="dataSource" [(ngModel)]="selectedDataSourceId" (change)="onDataSourceChange()"
+                    class="block w-48 pl-3 pr-10 py-1.5 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <option [ngValue]="null">None</option>
+                    <option *ngFor="let source of dataSources" [value]="source.id">{{ source.name }}</option>
+                </select>
+            </div>
+
             <div class="flex bg-gray-100 p-1 rounded-lg">
                 <button (click)="toggleMode()" [class.bg-white]="mode === 'edit'" [class.shadow-sm]="mode === 'edit'"
                     class="px-4 py-1.5 rounded-md text-sm font-medium text-gray-700 transition-all">

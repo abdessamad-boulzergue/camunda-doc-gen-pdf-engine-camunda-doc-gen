@@ -26,4 +26,44 @@ export const MOCK_DOCUMENTS: DocumentTemplate[] = [
         description: 'Apply for annual leave',
         updatedAt: new Date(Date.now() - 172800000), // 2 days ago
     },
+    {
+        id: '4',
+        title: 'Data Binding Demo (Employees)',
+        description: 'Select "John Doe" or "Jane Smith" in Preview to see data binding.',
+        updatedAt: new Date(),
+        content: JSON.stringify({
+            schemaVersion: 4,
+            exporter: {
+                name: 'form-js',
+                version: '0.1.0'
+            },
+            components: [
+                {
+                    key: 'firstName',
+                    label: 'First Name',
+                    type: 'textfield',
+                    id: 'Field_firstName'
+                },
+                {
+                    key: 'lastName',
+                    label: 'Last Name',
+                    type: 'textfield',
+                    id: 'Field_lastName'
+                },
+                {
+                    key: 'email',
+                    label: 'Email',
+                    type: 'textfield',
+                    id: 'Field_email'
+                },
+                {
+                    key: 'department',
+                    label: 'Department',
+                    type: 'textfield',
+                    id: 'Field_department'
+                }
+            ],
+            type: 'default'
+        })
+    }
 ];
