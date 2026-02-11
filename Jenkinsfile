@@ -9,6 +9,11 @@ pipeline {
                     some-label: some-value
                 spec:
                   containers:
+                  - name: node
+                    image: node:20-alpine
+                    command:
+                    - cat
+                    tty: true
                   - name: kaniko
                     image: gcr.io/kaniko-project/executor:debug
                     command:
@@ -45,8 +50,7 @@ pipeline {
                 checkout scm
             }
         }
-
-        stage('Read Version') {
+      stage('Read Version') {
             steps {
               script {
                 def version = sh(script: "grep '\"version\":' package.json | cut -d'\"' -f4", returnStdout: true).trim()
@@ -55,6 +59,13 @@ pipeline {
               }
             }
           }
+        stage('Build and Push Image') {
+            steps {
+                container('kaniko') {
+                    sh "/kaniko/executor --context `pwd` --destination ${DOCKER_HUB_REPO}:${IMAGE_TAG} --destination ${DOCKER_HUB_REPO}:latest"
+                }
+            }
+        }
 
         stage('Release') {
             when {
@@ -76,21 +87,6 @@ pipeline {
                         git checkout -b release/${IMAGE_TAG}
                         git push origin release/${IMAGE_TAG}
 
-                        # Switch back to original branch (assuming we are on a detached head, we need to checkout the branch name)
-                        # Ensure we are on the correct branch for bumping version
-                        git checkout ${env.BRANCH_NAME}
-
-                        # Bump version in package.json (increment patch)
-                        # naive increment: split by dot, increment last part
-                        
-                        NEW_VERSION=\$(echo ${IMAGE_TAG} | awk -F. '{\$NF = \$NF + 1;} 1' | sed 's/ /./g')
-                        
-                        # Update package.json
-                        sed -i 's/\"version\": "${IMAGE_TAG}"/"version": "\$NEW_VERSION"/' package.json
-
-                        # Commit and push version bump
-                        git commit -am "chore: bump version to \$NEW_VERSION"
-                        git push origin ${env.BRANCH_NAME}
                     """
                 }
             }
