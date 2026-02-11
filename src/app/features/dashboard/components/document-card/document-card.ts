@@ -14,6 +14,7 @@ export class DocumentCard {
   @Input() document!: DocumentTemplate;
   @Output() view = new EventEmitter<string>();
   @Output() edit = new EventEmitter<string>();
+  @Output() download = new EventEmitter<string>();
 
   onView(event: Event) {
     event.stopPropagation();
@@ -23,5 +24,10 @@ export class DocumentCard {
   onEdit(event: Event) {
     event.stopPropagation();
     this.edit.emit(this.document.id);
+  }
+
+  onDownload(event: Event) {
+    event.stopPropagation();
+    this.download.emit(this.document.id);
   }
 }

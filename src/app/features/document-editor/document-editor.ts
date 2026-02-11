@@ -98,6 +98,26 @@ export class DocumentEditor implements OnInit, AfterViewInit, OnDestroy {
 
     try {
       await this.formInstance.importSchema(this.schema);
+
+      // Add double-click listener to edit text components
+      if (this.mode === 'edit') {
+        const eventBus = this.formInstance.get('eventBus');
+        const modeling = this.formInstance.get('modeling');
+
+        eventBus.on('element.dblclick', (event: any) => {
+          const { element } = event;
+
+          if (element.type === 'text') {
+            const currentText = element.text || '';
+            const newText = prompt('Edit Text Content:', currentText);
+
+            if (newText !== null && newText !== currentText) {
+              modeling.updateProperties(element, { text: newText });
+            }
+          }
+        });
+      }
+
       if (this.mode === 'preview') {
         if (this.selectedDataSourceId) {
           this.updatePreviewData();

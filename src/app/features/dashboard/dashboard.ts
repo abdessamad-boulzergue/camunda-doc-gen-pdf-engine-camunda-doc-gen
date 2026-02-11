@@ -51,4 +51,24 @@ export class Dashboard implements OnInit {
     // For now, preview just goes to editor, or maybe we add a 'preview' mode query param
     this.router.navigate(['/editor', id], { queryParams: { mode: 'preview' } });
   }
+
+  downloadDocument(id: string) {
+    const doc = this.documents.find(d => d.id === id);
+    if (!doc) return;
+
+    this.documentService.downloadPdf(id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${doc.title.replace(/\s+/g, '_')}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.error('Download failed', err);
+        alert('Failed to download PDF. Ensure backend is running.');
+      }
+    });
+  }
 }

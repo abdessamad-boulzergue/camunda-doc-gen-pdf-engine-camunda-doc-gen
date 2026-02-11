@@ -43,7 +43,7 @@
 
             <!-- Existing Documents -->
             <app-document-card *ngFor="let doc of documents" [document]="doc" (view)="previewDocument($event)"
-                (edit)="navigateToEditor($event)"></app-document-card>
+                (edit)="navigateToEditor($event)" (download)="downloadDocument($event)"></app-document-card>
         </div>
     </main>
 </div>
