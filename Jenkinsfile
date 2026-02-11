@@ -27,6 +27,9 @@ pipeline {
               """
         }
     }
+    parameters {
+        booleanParam(name: 'IS_RELEASE', defaultValue: false, description: 'Check this to create a release branch and bump version')
+    }
 
     environment {
         // Update these values with your actual Docker Hub username and repository name
@@ -53,14 +56,46 @@ pipeline {
             }
           }
 
-        stage('Build and Push Image') {
+        stage('Release') {
+            when {
+                expression { params.IS_RELEASE == true }
+            }
             steps {
-                echo "Built image with tag: ${IMAGE_NAME}:${IMAGE_TAG}"
-                container('kaniko') {
-                    sh "/kaniko/executor --context `pwd` --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG} --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:latest"
+                withCredentials([usernamePassword(
+                  credentialsId: 'github-repo',
+                  usernameVariable: 'GIT_USERNAME',
+                  passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh """
+                        # Configure git
+                        git config user.email "jenkins@example.com"
+                        git config user.name "Jenkins"
+                        git remote set-url origin https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/${GIT_USERNAME}/camunda-doc-gen-pdf-engine-camunda-doc-gen.git
+
+                        # Create and push release branch
+                        git checkout -b release/${IMAGE_TAG}
+                        git push origin release/${IMAGE_TAG}
+
+                        # Switch back to original branch (assuming we are on a detached head, we need to checkout the branch name)
+                        # Ensure we are on the correct branch for bumping version
+                        git checkout ${env.BRANCH_NAME}
+
+                        # Bump version in package.json (increment patch)
+                        # naive increment: split by dot, increment last part
+                        
+                        NEW_VERSION=\$(echo ${IMAGE_TAG} | awk -F. '{\$NF = \$NF + 1;} 1' | sed 's/ /./g')
+                        
+                        # Update package.json
+                        sed -i 's/\"version\": "${IMAGE_TAG}"/"version": "\$NEW_VERSION"/' package.json
+
+                        # Commit and push version bump
+                        git commit -am "chore: bump version to \$NEW_VERSION"
+                        git push origin ${env.BRANCH_NAME}
+                    """
                 }
             }
         }
+
         stage('Update GitOps') {
           steps {
             withCredentials([usernamePassword(
@@ -75,7 +110,7 @@ pipeline {
                 sed -i "s|image: .*|image: docker.io/${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
 
                 git config user.name ${GIT_USERNAME}
-                git config user.email "ci@local"
+                git config user.email "jenkins@example.com"
 
                 git commit -am "Update image to ${IMAGE_TAG}"
                 git push
