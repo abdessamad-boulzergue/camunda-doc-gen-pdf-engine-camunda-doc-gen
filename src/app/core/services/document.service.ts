@@ -1,16 +1,18 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { EnvService } from './env.service';
 import { DocumentTemplate } from '../models/document.model';
 
 @Injectable({
     providedIn: 'root'
 })
 export class DocumentService {
-    private apiUrl = `${environment.apiUrl}/documents`;
+    private apiUrl: string;
 
-    constructor(private http: HttpClient) { }
+    constructor(private http: HttpClient, private envService: EnvService) {
+        this.apiUrl = `${this.envService.apiUrl}/documents`;
+    }
 
     getDocuments(): Observable<DocumentTemplate[]> {
         return this.http.get<DocumentTemplate[]>(this.apiUrl);
