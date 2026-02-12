@@ -41,11 +41,20 @@ spec:
                 checkout scm
             }
         }
+      stage('Read Version') {
+            steps {
+              script {
+                def version = sh(script: "grep '\"version\":' package.json | cut -d'\"' -f4", returnStdout: true).trim()
+                env.APP_VERSION = version
+                env.IMAGE_TAG = "${env.APP_VERSION}-${env.BUILD_NUMBER}"
 
+              }
+            }
+          }
         stage('Build and Push Image') {
             steps {
                 container('kaniko') {
-                    sh "/kaniko/executor --context `pwd` --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG} --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:latest"
+                    sh "/kaniko/executor --context `pwd` --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:${env.IMAGE_TAG} --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:latest"
                 }
             }
         }
@@ -60,12 +69,12 @@ spec:
                 git clone https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/${GIT_USERNAME}/camunda-doc-argocd.git
                 cd camunda-doc-argocd
 
-                sed -i "s|image: .*|image: docker.io/${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
+                sed -i "s|image: .*|image: docker.io/${DOCKER_HUB_REPO}/${IMAGE_NAME}:${env.IMAGE_TAG}|g" deployment.yaml
 
                 git config user.name ${GIT_USERNAME}
                 git config user.email "jenkins@example.com"
 
-                git commit -am "Update image to ${IMAGE_TAG}"
+                git commit -am "Update image to ${env.IMAGE_TAG}"
                 git push
               """
             }
