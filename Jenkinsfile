@@ -41,21 +41,24 @@ spec:
                 checkout scm
             }
         }
-          stage('Read Version') {
-            steps {
-              script {
-                def version = sh(
-                  script: "grep '\"version\":' package.json | cut -d'\"' -f4",
-                  returnStdout: true
-                ).trim()
+        stage('Read Version') {
+          steps {
+            script {
+              def version = sh(
+                script: "node -p \"require('./package.json').version\"",
+                returnStdout: true
+              ).trim()
 
-                env.APP_VERSION = version
-                env.IMAGE_TAG = "${env.APP_VERSION}-${env.BUILD_NUMBER}"
+              echo "Package version is ${version}"
 
-                echo "New version is ${env.IMAGE_TAG}"
-              }
+              env.APP_VERSION = version
+              env.IMAGE_TAG = "${env.APP_VERSION}-${env.BUILD_NUMBER}"
+
+              echo "New version is ${env.IMAGE_TAG}"
             }
           }
+        }
+
         stage('Build and Push Image') {
             steps {
                 container('kaniko') {
