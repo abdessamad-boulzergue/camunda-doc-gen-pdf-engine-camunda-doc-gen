@@ -32,7 +32,6 @@ spec:
         // Update these values with your actual Docker Hub username and repository name
         DOCKER_HUB_REPO = 'abdosblz'
         IMAGE_NAME='camunda-doc-gen'
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -44,11 +43,8 @@ spec:
         stage('Read Version') {
           steps {
             script {
-              def version = sh(
-                script: "node -p \"require('./package.json').version\"",
-                returnStdout: true
-              ).trim()
-
+              def version = sh(script: "grep '\"version\":' package.json | cut -d'\"' -f4", returnStdout: true).trim()
+              echo version
               echo "Package version is ${version}"
 
               env.APP_VERSION = version
