@@ -30,7 +30,8 @@ spec:
 
     environment {
         // Update these values with your actual Docker Hub username and repository name
-        DOCKER_HUB_REPO = 'abdosblz/camunda-doc-gen'
+        DOCKER_HUB_REPO = 'abdosblz'
+        IMAGE_NAME='camunda-doc-gen'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
@@ -44,9 +45,31 @@ spec:
         stage('Build and Push Image') {
             steps {
                 container('kaniko') {
-                    sh "/kaniko/executor --context `pwd` --destination ${DOCKER_HUB_REPO}:${IMAGE_TAG} --destination ${DOCKER_HUB_REPO}:latest"
+                    sh "/kaniko/executor --context `pwd` --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG} --destination ${DOCKER_HUB_REPO}/${IMAGE_NAME}:latest"
                 }
             }
+        }
+        stage('Update GitOps') {
+          steps {
+            withCredentials([usernamePassword(
+              credentialsId: 'github-repo',
+              usernameVariable: 'GIT_USERNAME',
+              passwordVariable: 'GIT_TOKEN'
+            )]) {
+              sh """
+                git clone https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/${GIT_USERNAME}/camunda-doc-argocd.git
+                cd camunda-doc-argocd
+
+                sed -i "s|image: .*|image: docker.io/${DOCKER_HUB_REPO}/${IMAGE_NAME}:${IMAGE_TAG}|g" deployment.yaml
+
+                git config user.name ${GIT_USERNAME}
+                git config user.email "jenkins@example.com"
+
+                git commit -am "Update image to ${IMAGE_TAG}"
+                git push
+              """
+            }
+          }
         }
     }
 }
